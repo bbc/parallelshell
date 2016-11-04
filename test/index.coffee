@@ -16,11 +16,13 @@ else
 # children
 waitingProcess = "\"node -e 'setTimeout(function(){},10000);'\""
 failingProcess = "\"node -e 'throw new Error();'\""
+successProcess = "\"node -e 'process.exit(0);'\""
 
 usageInfo = """
--h, --help         output usage information
--v, --verbose      verbose logging
--w, --wait         will not close sibling processes on error
+-h, --help            output usage information
+-v, --verbose         verbose logging
+-w, --wait            will not close sibling processes on error
+-d, --dont-wait-last  always close sibling prorcesses when the last process exits
 """.split("\n")
 
 cmdWrapper = (cmd) ->
@@ -110,6 +112,12 @@ describe "parallelshell", ->
       new Promise (resolve) -> ps2.on("close",resolve)]
     .then -> done()
     .catch done
+  it "should close all sibling processes on last child success when called with -d", (done) ->
+    ps = spawnParallelshell(["-d",waitingProcess,successProcess].join(" "))
+    spyOnPs ps,2
+    ps.on "close", () ->
+      ps.exitCode.should.equal 0
+      done()
   it "should close on CTRL+C / SIGINT", (done) ->
     ps = spawnParallelshell(["-w",waitingProcess,failingProcess,waitingProcess].join(" "))
     spyOnPs ps,2
