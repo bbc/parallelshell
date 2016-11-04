@@ -3,7 +3,7 @@
 'use strict';
 var spawn = require('child_process').spawn;
 
-var children, args, wait, dontWaitLast, cmds, verbose, i ,len;
+var sh, shFlag, children, args, wait, dontWaitLast, cmds, verbose, i ,len;
 // parsing argv
 cmds = [];
 args = process.argv.slice(2);
@@ -93,17 +93,25 @@ function close (code) {
 
 }
 
+// cross platform compatibility
+if (process.platform === 'win32') {
+    sh = 'cmd';
+    shFlag = '/c';
+} else {
+    sh = 'sh';
+    shFlag = '-c';
+}
+
 // start the children
 children = [];
 cmds.forEach(function (cmd, index, cmdArray) {
     if (process.platform != 'win32') {
       cmd = "exec "+cmd;
     }
-    var child = spawn(cmd, [], {
+    var child = spawn(sh,[shFlag,cmd], {
         cwd: process.cwd,
         env: process.env,
-        stdio: ['pipe', process.stdout, process.stderr],
-        shell: true
+        stdio: ['pipe', process.stdout, process.stderr]
     })
     .on('close', childClose);
     child.cmd = cmd;
