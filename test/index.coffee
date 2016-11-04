@@ -18,9 +18,10 @@ waitingProcess = "\"node -e 'setTimeout(function(){},10000);'\""
 failingProcess = "\"node -e 'throw new Error();'\""
 
 usageInfo = """
--h, --help         output usage information
--v, --verbose      verbose logging
--w, --wait         will not close sibling processes on error
+-h, --help            output usage information
+-v, --verbose         verbose logging
+-w, --wait            will not close sibling processes on error
+-d, --dont-wait-last  always close sibling prorcesses when the last process exits
 """.split("\n")
 
 cmdWrapper = (cmd) ->

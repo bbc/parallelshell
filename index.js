@@ -3,7 +3,7 @@
 'use strict';
 var spawn = require('child_process').spawn;
 
-var sh, shFlag, children, args, wait, cmds, verbose, i ,len;
+var children, args, wait, dontWaitLast, cmds, verbose, i ,len;
 // parsing argv
 cmds = [];
 args = process.argv.slice(2);
@@ -14,15 +14,21 @@ for (i = 0, len = args.length; i < len; i++) {
             case '--wait':
                 wait = true;
                 break;
+            case '-d':
+            case '--dont-wait-last':
+                dontWaitLast = true;
+                wait = false;
+                break;
             case '-v':
             case '--verbose':
                 verbose = true;
                 break;
             case '-h':
             case '--help':
-                console.log('-h, --help         output usage information');
-                console.log('-v, --verbose      verbose logging')
-                console.log('-w, --wait         will not close sibling processes on error')
+                console.log('-h, --help            output usage information');
+                console.log('-v, --verbose         verbose logging')
+                console.log('-w, --wait            will not close sibling processes on error')
+                console.log('-d, --dont-wait-last  always close sibling prorcesses when the last process exits');
                 process.exit();
                 break;
         }
@@ -43,6 +49,7 @@ function childClose (code) {
         }
     }
     if (code > 0 && !wait) close(code);
+    if (dontWaitLast && this.lastProcess) close(code);
     status();
 }
 
@@ -72,42 +79,36 @@ function close (code) {
         if (!children[i].exitCode) {
             opened++;
             children[i].removeAllListeners('close');
-            children[i].kill("SIGINT");
-            if (verbose) console.log('`' + children[i].cmd + '` will now be closed');
             children[i].on('close', function() {
                 closed++;
                 if (opened == closed) {
                     process.exit(code);
                 }
             });
+            if (verbose) console.log('`' + children[i].cmd + '` will now be closed');
+            children[i].kill("SIGINT");
         }
     }
     if (opened == closed) {process.exit(code);}
 
 }
 
-// cross platform compatibility
-if (process.platform === 'win32') {
-    sh = 'cmd';
-    shFlag = '/c';
-} else {
-    sh = 'sh';
-    shFlag = '-c';
-}
-
 // start the children
 children = [];
-cmds.forEach(function (cmd) {
+let lastElement = cmds.length - 1;
+cmds.forEach(function (cmd, index) {
     if (process.platform != 'win32') {
       cmd = "exec "+cmd;
     }
-    var child = spawn(sh,[shFlag,cmd], {
+    var child = spawn(cmd, [], {
         cwd: process.cwd,
         env: process.env,
-        stdio: ['pipe', process.stdout, process.stderr]
+        stdio: ['pipe', process.stdout, process.stderr],
+        shell: true
     })
     .on('close', childClose);
-    child.cmd = cmd
+    child.cmd = cmd;
+    child.lastProcess = (lastElement === index);
     children.push(child)
 });
 
