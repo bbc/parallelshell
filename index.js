@@ -95,8 +95,7 @@ function close (code) {
 
 // start the children
 children = [];
-let lastElement = cmds.length - 1;
-cmds.forEach(function (cmd, index) {
+cmds.forEach(function (cmd, index, cmdArray) {
     if (process.platform != 'win32') {
       cmd = "exec "+cmd;
     }
@@ -108,7 +107,7 @@ cmds.forEach(function (cmd, index) {
     })
     .on('close', childClose);
     child.cmd = cmd;
-    child.lastProcess = (lastElement === index);
+    child.lastProcess = (cmdArray.length - 1 === index);
     children.push(child)
 });
 
